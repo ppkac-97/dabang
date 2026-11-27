@@ -527,7 +527,8 @@ function renderSettings(main) {
       <button class="btn" id="sWidget">Sao chép mã widget</button></div>
     <div class="set-sec"><h3>Sao lưu</h3><p class="d">Xuất / nhập kho từ dạng file JSON.</p>
       <div class="row"><button class="btn ghost" id="sExp">Xuất file</button><label class="btn ghost">Nhập file<input type="file" id="sImp" accept=".json,application/json" hidden></label></div></div>
-    <p class="muted" style="font-size:12px;text-align:center">다방 Dabang · ${live().length} từ · bản ${APP_VER}</p>`;
+    <p class="muted" style="font-size:12px;text-align:center">다방 Dabang · ${live().length} từ · bản ${APP_VER}</p>
+    <button class="btn ghost" id="sUpd" style="display:block;margin:0 auto 12px">⟳ Tải bản mới nhất</button>`;
   $('#sSave').onclick = async () => {
     cfg.owner = $('#sOwner').value.trim(); cfg.repo = $('#sRepo').value.trim() || 'dabang-data'; cfg.token = $('#sTok').value.trim(); saveCfg();
     const st = $('#sStat'); st.className = 'status'; st.innerHTML = '<span class="spin"></span> Đang kiểm tra…';
@@ -576,6 +577,16 @@ function renderSettings(main) {
       navigator.clipboard.writeText(code).then(() => toast('Đã sao chép — mở Scriptable và dán vào script mới', 3500), fail);
     } catch (_) { fail(); }
   };
+  // xoá bộ nhớ đệm vỏ app (không đụng kho từ / cài đặt trong localStorage) rồi tải lại
+  $('#sUpd').onclick = async () => {
+    toast('Đang tải bản mới…');
+    try {
+      const rs = await navigator.serviceWorker?.getRegistrations?.() || [];
+      await Promise.all(rs.map(r => r.unregister()));
+      const ks = await caches.keys(); await Promise.all(ks.map(k => caches.delete(k)));
+    } catch (_) {}
+    location.replace(location.pathname + '?v=' + Date.now() + '#/settings');
+  };
   $('#sExp').onclick = async () => {
     const blob = new Blob([JSON.stringify({ exported: new Date().toISOString(), notes }, null, 1)], { type: 'application/json' });
     const name = `dabang-kho-tu-${new Date().toISOString().slice(0, 10)}.json`;
@@ -591,7 +602,7 @@ function renderSettings(main) {
 }
 
 /* =========================================================== khởi động */
-const APP_VER = '1.5';
+const APP_VER = '1.6';
 function init() {
   saveCfg();
   $$('.nav button').forEach(b => b.onclick = () => go(b.dataset.go === 'news' ? '#/news' : b.dataset.go === 'topik' ? '#/topik' : '#/' + b.dataset.go));
