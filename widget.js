@@ -29,7 +29,7 @@ async function cached(name, maxAgeMin, fetcher) {
 
 async function loadTopik() {
   if (!CONFIG.appUrl) return null;
-  return cached("topik-v2.json", 24 * 60, async () => {
+  return cached("topik-v3.json", 24 * 60, async () => {
     const r = new Request(CONFIG.appUrl.replace(/\/?$/, "/") + "topik.json");
     return await r.loadJSON();
   });
@@ -55,9 +55,10 @@ function pick(topik, notes) {
   }
   if (!topik) return { lbl: "다방", ko: "Chưa có dữ liệu", vi: "Mở app 다방 → Cài đặt → Sao chép mã widget", ex: "" };
   const k = r < 0.75 ? "vocab" : r < 0.9 ? "grammar" : "idiom";
-  const x = rand(topik[k]);
+  const real = topik[k].filter(y => y.src);              // ưu tiên câu nguyên văn trong đề TOPIK
+  const x = rand(real.length && Math.random() < 0.6 ? real : topik[k]);
   const lbl = { vocab: "TỪ VỰNG", grammar: "NGỮ PHÁP", idiom: "QUÁN DỤNG NGỮ" }[k];
-  return { lbl, ko: x.ko, vi: x.vi + (x.hv ? " · " + x.hv : ""), ex: x.ex || "", exvi: x.exvi || "" };
+  return { lbl, ko: x.ko, vi: x.vi + (x.hv ? " · " + x.hv : ""), ex: x.ex || "", exvi: x.exvi || "", src: x.src || "" };
 }
 
 const C = { bg: new Color("#f8f2e9"), ink: new Color("#3a2a20"), ink2: new Color("#6f5848"), coffee: new Color("#6e4129"), crema: new Color("#c8955c") };
@@ -108,6 +109,11 @@ function build(item, family) {
       const ev = w.addText(item.exvi);
       ev.font = Font.italicSystemFont(big ? 13 : 11); ev.textColor = C.ink2; ev.textOpacity = 0.8;
       ev.lineLimit = big ? 4 : 2; ev.minimumScaleFactor = 0.8;
+    }
+    if (item.src) {
+      w.addSpacer(2);
+      const sr = w.addText("📝 " + item.src);
+      sr.font = Font.systemFont(9); sr.textColor = C.crema; sr.lineLimit = 1;
     }
   }
   w.addSpacer();
