@@ -591,7 +591,7 @@ function renderSettings(main) {
 }
 
 /* =========================================================== khởi động */
-const APP_VER = '1.4';
+const APP_VER = '1.5';
 function init() {
   saveCfg();
   $$('.nav button').forEach(b => b.onclick = () => go(b.dataset.go === 'news' ? '#/news' : b.dataset.go === 'topik' ? '#/topik' : '#/' + b.dataset.go));
