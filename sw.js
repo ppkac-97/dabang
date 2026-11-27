@@ -1,5 +1,5 @@
 // Cache vỏ app để mở được khi mất mạng. Đổi VER khi sửa file để điện thoại lấy bản mới.
-const VER = 'dabang-v9';
+const VER = 'dabang-v10';
 const SHELL = ['./', 'index.html', 'app.css', 'app.js', 'topik.json', 'manifest.webmanifest', 'icon-180.png', 'icon-512.png'];
 // cache:'reload' = bỏ qua bộ nhớ đệm HTTP 10 phút của GitHub Pages, lấy đúng bản mới khi cài SW mới
 self.addEventListener('install', e => { e.waitUntil(caches.open(VER).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting())); });

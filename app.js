@@ -548,7 +548,7 @@ function renderSettings(main) {
   let widgetSrc = null;
   const widgetLoad = fetch('widget.js', { cache: 'no-store' }).then(r => r.text()).then(t => (widgetSrc = t)).catch(() => null);
   const widgetCode = src => {
-    const appUrl = location.href.split('#')[0].replace(/index\.html$/, '');
+    const appUrl = location.origin + location.pathname.replace(/index.html$/, '');  // bỏ ?v=… và #…
     const head = `const CONFIG = ${JSON.stringify({ owner: cfg.owner, repo: cfg.repo, branch: cfg.branch, token: cfg.token, appUrl }, null, 2)};\n`;
     const code = src.replace(/\r\n/g, '\n').replace(/^const CONFIG = [\s\S]*?\};\n/m, head);
     return code.includes(head) ? code : head + code.replace(/^const CONFIG = [\s\S]*?\};/m, '');
@@ -602,7 +602,7 @@ function renderSettings(main) {
 }
 
 /* =========================================================== khởi động */
-const APP_VER = '1.6';
+const APP_VER = '1.7';
 function init() {
   saveCfg();
   $$('.nav button').forEach(b => b.onclick = () => go(b.dataset.go === 'news' ? '#/news' : b.dataset.go === 'topik' ? '#/topik' : '#/' + b.dataset.go));

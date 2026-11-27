@@ -9,6 +9,8 @@ const CONFIG = {
 // Dán cả file này vào 1 script mới trong app Scriptable (nút “Sao chép mã widget” trong Cài đặt đã điền sẵn CONFIG).
 // Màn hình khoá: giữ màn hình khoá → Tuỳ chỉnh → thêm widget → Scriptable (ô chữ nhật) → chọn script này.
 
+// địa chỉ gốc app (bỏ ?… #… index.html nếu lỡ dính vào)
+const BASE = (CONFIG.appUrl || "").split("#")[0].split("?")[0].replace(/index\.html$/, "").replace(/\/?$/, "/");
 const fm = FileManager.local();
 const dir = fm.joinPath(fm.documentsDirectory(), "dabang");
 if (!fm.fileExists(dir)) fm.createDirectory(dir);
@@ -32,8 +34,8 @@ async function cached(name, maxAgeMin, fetcher) {
 async function loadTopik() {
   if (!CONFIG.appUrl) return null;
   // chỉ giữ các trường widget cần → file cache nhỏ, widget màn hình khoá (ít bộ nhớ) đọc nhanh
-  return cached("topik-slim-v1.json", 24 * 60, async () => {
-    const r = new Request(CONFIG.appUrl.replace(/\/?$/, "/") + "topik.json");
+  return cached("topik-slim-v2.json", 24 * 60, async () => {
+    const r = new Request(BASE + "topik.json");
     r.timeoutInterval = 20;
     const d = await r.loadJSON(), out = {};
     for (const k of ["vocab", "grammar", "idiom"]) out[k] = (d[k] || []).map(x => ({ ko: x.ko, vi: x.vi, hv: x.hv || "", ex: x.ex || "", exvi: x.exvi || "", src: x.src || "" }));
@@ -60,7 +62,7 @@ function pick(topik, notes) {
     const n = rand(notes);
     return { lbl: "TỪ ĐÃ GHI", ko: n.ko, vi: n.vi || "", ex: n.ctx || "", exvi: "" };
   }
-  if (!topik) return { lbl: "다방", ko: "Chưa có dữ liệu", vi: "Mở app 다방 → Cài đặt → Sao chép mã widget", ex: "" };
+  if (!topik) return { lbl: "다방", ko: "Chưa có dữ liệu", vi: CONFIG.appUrl ? "Không tải được " + BASE + "topik.json" : "Mở app 다방 → Cài đặt → Sao chép mã widget", ex: "" };
   const k = r < 0.75 ? "vocab" : r < 0.9 ? "grammar" : "idiom";
   const real = topik[k].filter(y => y.src);              // ưu tiên câu nguyên văn trong đề TOPIK
   const x = rand(real.length && Math.random() < 0.6 ? real : topik[k]);
@@ -72,7 +74,7 @@ const C = { bg: new Color("#f8f2e9"), ink: new Color("#3a2a20"), ink2: new Color
 
 function build(item, family) {
   const w = new ListWidget();
-  if (CONFIG.appUrl) w.url = CONFIG.appUrl.replace(/\/?$/, "/") + "#/vault";
+  if (CONFIG.appUrl) w.url = BASE + "#/vault";
   w.refreshAfterDate = new Date(Date.now() + 15 * 60 * 1000);
 
   if (family === "accessoryInline") {
