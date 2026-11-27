@@ -16,28 +16,35 @@ const P = n => fm.joinPath(dir, n);
 
 async function cached(name, maxAgeMin, fetcher) {
   const f = P(name);
-  const fresh = fm.fileExists(f) && (Date.now() - fm.modificationDate(f).getTime()) / 60000 < maxAgeMin;
-  if (fresh) return JSON.parse(fm.readString(f));
+  const read = () => { try { return fm.fileExists(f) ? JSON.parse(fm.readString(f)) : null; } catch (e) { return null; } };
+  let age = 1e9;
+  try { if (fm.fileExists(f)) age = (Date.now() - fm.modificationDate(f).getTime()) / 60000; } catch (e) {}
+  if (age < maxAgeMin) { const d = read(); if (d) return d; }
   try {
     const data = await fetcher();
-    fm.writeString(f, JSON.stringify(data));
+    try { fm.writeString(f, JSON.stringify(data)); } catch (e) {}
     return data;
   } catch (e) {
-    return fm.fileExists(f) ? JSON.parse(fm.readString(f)) : null;
+    return read();
   }
 }
 
 async function loadTopik() {
   if (!CONFIG.appUrl) return null;
-  return cached("topik-v3.json", 24 * 60, async () => {
+  // chỉ giữ các trường widget cần → file cache nhỏ, widget màn hình khoá (ít bộ nhớ) đọc nhanh
+  return cached("topik-slim-v1.json", 24 * 60, async () => {
     const r = new Request(CONFIG.appUrl.replace(/\/?$/, "/") + "topik.json");
-    return await r.loadJSON();
+    r.timeoutInterval = 20;
+    const d = await r.loadJSON(), out = {};
+    for (const k of ["vocab", "grammar", "idiom"]) out[k] = (d[k] || []).map(x => ({ ko: x.ko, vi: x.vi, hv: x.hv || "", ex: x.ex || "", exvi: x.exvi || "", src: x.src || "" }));
+    return out;
   });
 }
 async function loadNotes() {
   if (!CONFIG.owner || !CONFIG.token) return [];
   const d = await cached("notes.json", 20, async () => {
     const r = new Request(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/notes.json?ref=${CONFIG.branch}`);
+    r.timeoutInterval = 15;
     r.headers = { Authorization: "Bearer " + CONFIG.token, Accept: "application/vnd.github.raw+json", "User-Agent": "dabang-widget" };
     const txt = await r.loadString();
     if (r.response.statusCode !== 200) throw new Error("HTTP " + r.response.statusCode);
@@ -120,10 +127,18 @@ function build(item, family) {
   return w;
 }
 
-const [topik, notes] = await Promise.all([loadTopik(), loadNotes()]);
-const item = pick(topik, notes);
 const family = config.widgetFamily || "medium";
-const widget = build(item, family);
+let widget;
+try {
+  const [topik, notes] = await Promise.all([loadTopik().catch(() => null), loadNotes().catch(() => [])]);
+  widget = build(pick(topik, notes || []), family);
+} catch (e) {
+  // hiện lỗi thẳng lên widget để biết đường sửa
+  widget = new ListWidget();
+  const t = widget.addText("다방 ⚠︎ " + String(e && e.message || e).slice(0, 120));
+  t.font = Font.systemFont(11); t.minimumScaleFactor = 0.6;
+  widget.refreshAfterDate = new Date(Date.now() + 10 * 60 * 1000);
+}
 if (config.runsInWidget || config.runsInAccessoryWidget) {
   Script.setWidget(widget);
 } else {
