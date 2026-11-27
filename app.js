@@ -106,7 +106,7 @@ function setSyncDot(s) { const d = $('#syncdot'); if (d) d.dataset.s = s; }
 
 /* ---------------- Gemini (tuỳ chọn, chạy trên máy) ---------------- */
 async function gemini(prompt, json = false) {
-  const models = ['gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-2.5-flash'];
+  const models = ['gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-flash-lite-latest'];
   let last;
   for (const m of models) {
     try {
