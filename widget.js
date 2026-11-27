@@ -11,6 +11,7 @@ const CONFIG = {
 
 // địa chỉ gốc app (bỏ ?… #… index.html nếu lỡ dính vào)
 const BASE = (CONFIG.appUrl || "").split("#")[0].split("?")[0].replace(/index\.html$/, "").replace(/\/?$/, "/");
+const LOCK = config.widgetFamily === "accessoryRectangular";
 const fm = FileManager.local();
 const dir = fm.joinPath(fm.documentsDirectory(), "dabang");
 if (!fm.fileExists(dir)) fm.createDirectory(dir);
@@ -58,14 +59,17 @@ async function loadNotes() {
 function pick(topik, notes) {
   const r = Math.random();
   const rand = a => a[Math.floor(Math.random() * a.length)];
-  if (notes.length && (r < 0.5 || !topik)) {
+  if (notes.length && (r < (LOCK ? 0.3 : 0.5) || !topik)) {
     const n = rand(notes);
     return { lbl: "TỪ ĐÃ GHI", ko: n.ko, vi: n.vi || "", ex: n.ctx || "", exvi: "" };
   }
   if (!topik) return { lbl: "다방", ko: "Chưa có dữ liệu", vi: CONFIG.appUrl ? "Không tải được " + BASE + "topik.json" : "Mở app 다방 → Cài đặt → Sao chép mã widget", ex: "" };
   const k = r < 0.75 ? "vocab" : r < 0.9 ? "grammar" : "idiom";
-  const real = topik[k].filter(y => y.src);              // ưu tiên câu nguyên văn trong đề TOPIK
-  const x = rand(real.length && Math.random() < 0.6 ? real : topik[k]);
+  // màn hình khoá chật: chỉ lấy mục có câu ví dụ ngắn (vừa 1 dòng); màn hình chính: ưu tiên câu nguyên văn đề TOPIK
+  let pool = topik[k];
+  if (LOCK) { const sh = pool.filter(y => y.ex && y.ex.length <= 38 && (y.exvi || "").length <= 70); if (sh.length) pool = sh; }
+  const real = pool.filter(y => y.src);
+  const x = rand(real.length && Math.random() < 0.6 ? real : pool);
   const lbl = { vocab: "TỪ VỰNG", grammar: "NGỮ PHÁP", idiom: "QUÁN DỤNG NGỮ" }[k];
   return { lbl, ko: x.ko, vi: x.vi + (x.hv ? " · " + x.hv : ""), ex: x.ex || "", exvi: x.exvi || "", src: x.src || "" };
 }
@@ -88,10 +92,19 @@ function build(item, family) {
     return w;
   }
   if (family === "accessoryRectangular") {
-    const k = w.addText(item.ko);
-    k.font = Font.boldSystemFont(15); k.lineLimit = 1; k.minimumScaleFactor = 0.6;
-    const v = w.addText(item.vi);
-    v.font = Font.systemFont(12); v.lineLimit = 2; v.minimumScaleFactor = 0.8; v.textOpacity = 0.85;
+    // 4 dòng nhỏ: cụm · nghĩa / câu ví dụ / bản dịch
+    const k = w.addText(item.ko + (item.vi ? "  ·  " + item.vi : ""));
+    k.font = Font.boldSystemFont(12); k.lineLimit = 1; k.minimumScaleFactor = 0.6;
+    if (item.ex) {
+      const e = w.addText(item.ex);
+      e.font = Font.systemFont(11); e.lineLimit = 2; e.minimumScaleFactor = 0.75;
+      if (item.exvi) {
+        const ev = w.addText(item.exvi);
+        ev.font = Font.italicSystemFont(10); ev.lineLimit = 1; ev.minimumScaleFactor = 0.7; ev.textOpacity = 0.8;
+      }
+    } else {
+      k.lineLimit = 2;
+    }
     return w;
   }
   // màn hình chính
