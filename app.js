@@ -549,7 +549,8 @@ function renderSettings(main) {
   const widgetCode = src => {
     const appUrl = location.href.split('#')[0].replace(/index\.html$/, '');
     const head = `const CONFIG = ${JSON.stringify({ owner: cfg.owner, repo: cfg.repo, branch: cfg.branch, token: cfg.token, appUrl }, null, 2)};\n`;
-    return src.replace(/^const CONFIG = [\s\S]*?\};\n/m, head);
+    const code = src.replace(/\r\n/g, '\n').replace(/^const CONFIG = [\s\S]*?\};\n/m, head);
+    return code.includes(head) ? code : head + code.replace(/^const CONFIG = [\s\S]*?\};/m, '');
   };
   const showWidgetCode = code => openSheet(`<h3 style="margin:0 0 6px">Mã widget</h3>
       <p class="d" style="margin:0 0 8px">Chạm vào ô dưới → giữ tay → <b>Chọn tất cả</b> → <b>Sao chép</b>, rồi dán vào Scriptable.</p>
@@ -590,7 +591,7 @@ function renderSettings(main) {
 }
 
 /* =========================================================== khởi động */
-const APP_VER = '1.3';
+const APP_VER = '1.4';
 function init() {
   saveCfg();
   $$('.nav button').forEach(b => b.onclick = () => go(b.dataset.go === 'news' ? '#/news' : b.dataset.go === 'topik' ? '#/topik' : '#/' + b.dataset.go));
