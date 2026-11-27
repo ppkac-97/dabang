@@ -536,14 +536,37 @@ function renderSettings(main) {
   $('#sSync').onclick = () => syncNotes(false);
   $('#sGemSave').onclick = () => { cfg.gemini = $('#sGem').value.trim(); saveCfg(); toast('Đã lưu khoá Gemini'); };
   $('#sFs').oninput = e => { cfg.fs = +e.target.value; saveCfg(); $('#sFsDemo').style.fontSize = cfg.fs + 'px'; };
-  $('#sWidget').onclick = async () => {
+  // iOS chỉ cho chép khi gọi NGAY trong lúc bấm (không được chờ tải mạng trước) → tải sẵn mã khi mở Cài đặt.
+  let widgetSrc = null;
+  const widgetLoad = fetch('widget.js', { cache: 'no-store' }).then(r => r.text()).then(t => (widgetSrc = t)).catch(() => null);
+  const widgetCode = src => {
+    const appUrl = location.href.split('#')[0].replace(/index\.html$/, '');
+    const head = `const CONFIG = ${JSON.stringify({ owner: cfg.owner, repo: cfg.repo, branch: cfg.branch, token: cfg.token, appUrl }, null, 2)};\n`;
+    return src.replace(/^const CONFIG = [\s\S]*?\};\n/m, head);
+  };
+  const showWidgetCode = code => openSheet(`<h3 style="margin:0 0 6px">Mã widget</h3>
+      <p class="d" style="margin:0 0 8px">Chạm vào ô dưới → giữ tay → <b>Chọn tất cả</b> → <b>Sao chép</b>, rồi dán vào Scriptable.</p>
+      <textarea id="wCode" readonly style="width:100%;height:46vh;font:12px/1.4 ui-monospace,Menlo,monospace;border:1px solid #d9c9b4;border-radius:10px;padding:8px;background:#fffdf9"></textarea>
+      <button class="btn" id="wCopy" style="margin-top:10px;width:100%">Thử sao chép lại</button>`, sh => {
+    const ta = sh.querySelector('#wCode'); ta.value = code;
+    const sel = () => { ta.focus(); ta.setSelectionRange(0, ta.value.length); };
+    ta.onclick = sel;
+    sh.querySelector('#wCopy').onclick = () => {
+      sel(); let ok = false;
+      try { ok = document.execCommand('copy'); } catch (_) {}
+      if (ok) { toast('Đã sao chép — mở Scriptable và dán vào script mới', 3500); closeSheet(); }
+      else navigator.clipboard?.writeText(code).then(() => { toast('Đã sao chép', 2500); closeSheet(); }, () => toast('Chọn tất cả rồi bấm Sao chép bằng tay nhé'));
+    };
+  });
+  $('#sWidget').onclick = () => {
+    if (!cfg.owner || !cfg.token) toast('Lưu tài khoản + mã truy cập trước để widget đọc được kho từ', 3500);
+    if (widgetSrc == null) { widgetLoad.then(s => s ? showWidgetCode(widgetCode(s)) : toast('Không tải được mã widget — kiểm tra mạng')); return; }
+    const code = widgetCode(widgetSrc);
+    const fail = () => showWidgetCode(code);
     try {
-      const code = await (await fetch('widget.js', { cache: 'no-store' })).text();
-      const appUrl = location.href.split('#')[0].replace(/index\.html$/, '');
-      const head = `const CONFIG = ${JSON.stringify({ owner: cfg.owner, repo: cfg.repo, branch: cfg.branch, token: cfg.token, appUrl }, null, 2)};\n`;
-      await navigator.clipboard.writeText(code.replace(/^const CONFIG = [\s\S]*?\};\n/m, head));
-      toast('Đã sao chép — mở Scriptable và dán vào script mới', 3500);
-    } catch (e) { toast('Không sao chép được: ' + e.message); }
+      if (!navigator.clipboard) return fail();
+      navigator.clipboard.writeText(code).then(() => toast('Đã sao chép — mở Scriptable và dán vào script mới', 3500), fail);
+    } catch (_) { fail(); }
   };
   $('#sExp').onclick = async () => {
     const blob = new Blob([JSON.stringify({ exported: new Date().toISOString(), notes }, null, 1)], { type: 'application/json' });
@@ -560,7 +583,7 @@ function renderSettings(main) {
 }
 
 /* =========================================================== khởi động */
-const APP_VER = '1.0';
+const APP_VER = '1.1';
 function init() {
   saveCfg();
   $$('.nav button').forEach(b => b.onclick = () => go(b.dataset.go === 'news' ? '#/news' : b.dataset.go === 'topik' ? '#/topik' : '#/' + b.dataset.go));

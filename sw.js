@@ -1,5 +1,5 @@
 // Cache vỏ app để mở được khi mất mạng. Đổi VER khi sửa file để điện thoại lấy bản mới.
-const VER = 'dabang-v2';
+const VER = 'dabang-v3';
 const SHELL = ['./', 'index.html', 'app.css', 'app.js', 'topik.json', 'manifest.webmanifest', 'icon-180.png', 'icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(VER).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => {
