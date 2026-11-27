@@ -61,7 +61,7 @@ function pick(topik, notes) {
   const rand = a => a[Math.floor(Math.random() * a.length)];
   if (notes.length && (r < (LOCK ? 0.3 : 0.5) || !topik)) {
     const n = rand(notes);
-    return { lbl: "TỪ ĐÃ GHI", ko: n.ko, vi: n.vi || "", ex: n.ctx || "", exvi: "" };
+    return { lbl: "TỪ ĐÃ GHI", ko: n.ko, vi: n.vi || "", ex: n.ctx || "", exvi: "", go: "#/vault?q=" + encodeURIComponent(n.ko) };
   }
   if (!topik) return { lbl: "다방", ko: "Chưa có dữ liệu", vi: CONFIG.appUrl ? "Không tải được " + BASE + "topik.json" : "Mở app 다방 → Cài đặt → Sao chép mã widget", ex: "" };
   const k = r < 0.75 ? "vocab" : r < 0.9 ? "grammar" : "idiom";
@@ -70,14 +70,15 @@ function pick(topik, notes) {
   const real = pool.filter(y => y.src);
   const x = rand(real.length && Math.random() < 0.6 ? real : pool);
   const lbl = { vocab: "TỪ VỰNG", grammar: "NGỮ PHÁP", idiom: "QUÁN DỤNG NGỮ" }[k];
-  return { lbl, ko: x.ko, vi: x.vi + (x.hv ? " · " + x.hv : ""), ex: x.ex || "", exvi: x.exvi || "", src: x.src || "" };
+  return { lbl, ko: x.ko, vi: x.vi + (x.hv ? " · " + x.hv : ""), ex: x.ex || "", exvi: x.exvi || "", src: x.src || "", go: `#/topik/${k}?q=${encodeURIComponent(x.ko)}` };
 }
 
 const C = { bg: new Color("#f8f2e9"), ink: new Color("#3a2a20"), ink2: new Color("#6f5848"), coffee: new Color("#6e4129"), crema: new Color("#c8955c") };
 
 function build(item, family) {
   const w = new ListWidget();
-  if (CONFIG.appUrl) w.url = BASE + "#/vault";
+  // chạm widget → mở đúng cụm đang hiện (đủ câu dài + bản dịch)
+  if (CONFIG.appUrl) w.url = BASE + (item.go || "#/vault");
   w.refreshAfterDate = new Date(Date.now() + 15 * 60 * 1000);
 
   if (family === "accessoryInline") {
