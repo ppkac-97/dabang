@@ -65,9 +65,8 @@ function pick(topik, notes) {
   }
   if (!topik) return { lbl: "다방", ko: "Chưa có dữ liệu", vi: CONFIG.appUrl ? "Không tải được " + BASE + "topik.json" : "Mở app 다방 → Cài đặt → Sao chép mã widget", ex: "" };
   const k = r < 0.75 ? "vocab" : r < 0.9 ? "grammar" : "idiom";
-  // màn hình khoá chật: chỉ lấy mục có câu ví dụ ngắn (vừa 1 dòng); màn hình chính: ưu tiên câu nguyên văn đề TOPIK
-  let pool = topik[k];
-  if (LOCK) { const sh = pool.filter(y => y.ex && y.ex.length <= 38 && (y.exvi || "").length <= 70); if (sh.length) pool = sh; }
+  // ưu tiên câu nguyên văn đề TOPIK (60%)
+  const pool = topik[k];                                   // xoay vòng tất cả, câu ngắn lẫn dài
   const real = pool.filter(y => y.src);
   const x = rand(real.length && Math.random() < 0.6 ? real : pool);
   const lbl = { vocab: "TỪ VỰNG", grammar: "NGỮ PHÁP", idiom: "QUÁN DỤNG NGỮ" }[k];
@@ -93,14 +92,16 @@ function build(item, family) {
   }
   if (family === "accessoryRectangular") {
     // 4 dòng nhỏ: cụm · nghĩa / câu ví dụ / bản dịch
+    // câu dài → chữ nhỏ hơn + thêm dòng; iOS tự thu nhỏ tiếp (minimumScaleFactor) cho vừa ô
+    const long = (item.ex || "").length > 40 || (item.exvi || "").length > 75;
     const k = w.addText(item.ko + (item.vi ? "  ·  " + item.vi : ""));
-    k.font = Font.boldSystemFont(12); k.lineLimit = 1; k.minimumScaleFactor = 0.6;
+    k.font = Font.boldSystemFont(long ? 11 : 12); k.lineLimit = 1; k.minimumScaleFactor = 0.6;
     if (item.ex) {
       const e = w.addText(item.ex);
-      e.font = Font.systemFont(11); e.lineLimit = 2; e.minimumScaleFactor = 0.75;
+      e.font = Font.systemFont(long ? 9.5 : 11); e.lineLimit = long ? 3 : 2; e.minimumScaleFactor = 0.6;
       if (item.exvi) {
         const ev = w.addText(item.exvi);
-        ev.font = Font.italicSystemFont(10); ev.lineLimit = 1; ev.minimumScaleFactor = 0.7; ev.textOpacity = 0.8;
+        ev.font = Font.italicSystemFont(long ? 8.5 : 10); ev.lineLimit = 2; ev.minimumScaleFactor = 0.6; ev.textOpacity = 0.8;
       }
     } else {
       k.lineLimit = 2;
