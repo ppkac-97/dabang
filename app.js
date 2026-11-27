@@ -435,7 +435,7 @@ async function renderTopik(main) {
       if (x.t !== lastT) { html += `<div class="topic-h">${esc(x.t)}</div>`; lastT = x.t; lastG = ''; }
       if (x.g && x.g !== lastG) { html += `<div class="group-h">${esc(x.g)}</div>`; lastG = x.g; }
       html += tab === 'grammar'
-        ? `<div class="item"><div class="k">${esc(x.ko)}</div><div class="v">${esc(x.vi)}</div>${x.ex ? `<div class="ex">${esc(x.ex)}</div>` : ''}${x.note ? `<div class="note"><b>Cách dùng:</b> ${esc(x.note)}</div>` : ''}</div>`
+        ? `<div class="item"><div class="k">${esc(x.ko)}</div><div class="v">${esc(x.vi)}</div>${x.ex ? `<div class="ex">${esc(x.ex)}</div>` : ''}${x.exvi ? `<div class="exvi">${esc(x.exvi)}</div>` : ''}${x.ex0 ? `<div class="ex">${esc(x.ex0)}</div>` : ''}${x.note ? `<div class="note"><b>Cách dùng:</b> ${esc(x.note)}</div>` : ''}</div>`
         : `<div class="item"><div class="k">${esc(x.ko)}${x.hv ? `<span class="hv">${esc(x.hv)}</span>` : ''}</div><div class="v">${esc(x.vi)}</div>${x.ex ? `<div class="ex">${esc(x.ex)}</div><div class="exvi">${esc(x.exvi)}</div>` : ''}</div>`;
     }
     if (!list.length) html = `<div class="empty"><p>Không tìm thấy “${esc(qv)}” trong ${TABS[tab].toLowerCase()}.</p></div>`;
@@ -458,7 +458,7 @@ function pickReview() {
   if (!t) return null;
   const k = r < .78 ? 'vocab' : r < .9 ? 'grammar' : 'idiom';
   const x = t[k][Math.floor(Math.random() * t[k].length)];
-  return { lbl: TABS[k], ko: x.ko, vi: x.vi + (x.hv ? ' · ' + x.hv : ''), ex: x.ex };
+  return { lbl: TABS[k], ko: x.ko, vi: x.vi + (x.hv ? ' · ' + x.hv : ''), ex: x.ex, exvi: x.exvi };
 }
 async function renderVault(main) {
   main = main || $('#main');
@@ -495,6 +495,7 @@ function drawReview() {
   const r = reviewItem;
   el.innerHTML = r ? `<div class="lbl">Ôn nhanh · ${esc(r.lbl)}</div><div class="k">${esc(r.ko)}</div>
       <div class="v ${reviewShown ? '' : 'blur'}" id="rv">${esc(r.vi || '…')}</div>
+      ${r.ex ? `<div class="ex ko" style="margin-top:6px;font-size:15px">${esc(r.ex)}</div>${r.exvi ? `<div class="exvi ${reviewShown ? '' : 'blur'}" style="font-size:13px">${esc(r.exvi)}</div>` : ''}` : ''}
       <div class="row"><button class="btn small" id="rShow">${reviewShown ? 'Ẩn nghĩa' : 'Xem nghĩa'}</button><button class="btn small ghost" id="rNext">Câu khác ↻</button></div>${CUP_CAT.replace('<svg', '<svg class="cat"')}`
     : `<div class="lbl">Ôn nhanh</div><div class="k">…</div>${CUP_CAT.replace('<svg', '<svg class="cat"')}`;
   const s = $('#rShow'); if (s) s.onclick = () => { reviewShown = !reviewShown; drawReview(); };
@@ -583,7 +584,7 @@ function renderSettings(main) {
 }
 
 /* =========================================================== khởi động */
-const APP_VER = '1.1';
+const APP_VER = '1.2';
 function init() {
   saveCfg();
   $$('.nav button').forEach(b => b.onclick = () => go(b.dataset.go === 'news' ? '#/news' : b.dataset.go === 'topik' ? '#/topik' : '#/' + b.dataset.go));

@@ -29,7 +29,7 @@ async function cached(name, maxAgeMin, fetcher) {
 
 async function loadTopik() {
   if (!CONFIG.appUrl) return null;
-  return cached("topik.json", 24 * 60, async () => {
+  return cached("topik-v2.json", 24 * 60, async () => {
     const r = new Request(CONFIG.appUrl.replace(/\/?$/, "/") + "topik.json");
     return await r.loadJSON();
   });
@@ -51,13 +51,13 @@ function pick(topik, notes) {
   const rand = a => a[Math.floor(Math.random() * a.length)];
   if (notes.length && (r < 0.5 || !topik)) {
     const n = rand(notes);
-    return { lbl: "TỪ ĐÃ GHI", ko: n.ko, vi: n.vi || "", ex: n.ctx || "" };
+    return { lbl: "TỪ ĐÃ GHI", ko: n.ko, vi: n.vi || "", ex: n.ctx || "", exvi: "" };
   }
   if (!topik) return { lbl: "다방", ko: "Chưa có dữ liệu", vi: "Mở app 다방 → Cài đặt → Sao chép mã widget", ex: "" };
   const k = r < 0.75 ? "vocab" : r < 0.9 ? "grammar" : "idiom";
   const x = rand(topik[k]);
   const lbl = { vocab: "TỪ VỰNG", grammar: "NGỮ PHÁP", idiom: "QUÁN DỤNG NGỮ" }[k];
-  return { lbl, ko: x.ko, vi: x.vi + (x.hv ? " · " + x.hv : ""), ex: x.ex || "" };
+  return { lbl, ko: x.ko, vi: x.vi + (x.hv ? " · " + x.hv : ""), ex: x.ex || "", exvi: x.exvi || "" };
 }
 
 const C = { bg: new Color("#f8f2e9"), ink: new Color("#3a2a20"), ink2: new Color("#6f5848"), coffee: new Color("#6e4129"), crema: new Color("#c8955c") };
@@ -87,19 +87,28 @@ function build(item, family) {
   // màn hình chính
   w.backgroundColor = C.bg;
   w.setPadding(14, 16, 14, 16);
+  const big = family === "large", small = family === "small";
   const l = w.addText("☕ " + item.lbl);
   l.font = Font.semiboldSystemFont(10); l.textColor = C.crema;
-  w.addSpacer(6);
+  w.addSpacer(small ? 6 : 4);
   const k = w.addText(item.ko);
-  k.font = new Font("AppleMyungjo", family === "small" ? 18 : 22);
-  k.textColor = C.ink; k.minimumScaleFactor = 0.6; k.lineLimit = 2;
-  w.addSpacer(4);
+  k.font = new Font("AppleMyungjo", small ? 18 : big ? 24 : 19);
+  k.textColor = C.ink; k.minimumScaleFactor = 0.6; k.lineLimit = small ? 2 : 1;
+  w.addSpacer(2);
   const v = w.addText(item.vi);
-  v.font = Font.systemFont(family === "small" ? 12 : 13.5); v.textColor = C.ink2; v.lineLimit = family === "small" ? 3 : 2;
-  if (family !== "small" && item.ex) {
-    w.addSpacer(6);
+  v.font = Font.systemFont(small ? 12 : 12.5); v.textColor = C.ink2; v.lineLimit = small ? 3 : 1; v.minimumScaleFactor = 0.85;
+  if (!small && item.ex) {
+    // câu ví dụ (TOPIK II) + bản dịch
+    w.addSpacer(big ? 10 : 5);
     const e = w.addText(item.ex);
-    e.font = Font.italicSystemFont(12); e.textColor = C.ink2; e.textOpacity = 0.75; e.lineLimit = family === "large" ? 4 : 2;
+    e.font = new Font("AppleMyungjo", big ? 15 : 12.5); e.textColor = C.coffee;
+    e.lineLimit = big ? 4 : 2; e.minimumScaleFactor = 0.8;
+    if (item.exvi) {
+      w.addSpacer(2);
+      const ev = w.addText(item.exvi);
+      ev.font = Font.italicSystemFont(big ? 13 : 11); ev.textColor = C.ink2; ev.textOpacity = 0.8;
+      ev.lineLimit = big ? 4 : 2; ev.minimumScaleFactor = 0.8;
+    }
   }
   w.addSpacer();
   return w;
